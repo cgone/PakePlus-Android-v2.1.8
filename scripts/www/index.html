@@ -1,11 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
-</html>
+<!DOCTYPE html><html><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"><link rel="shortcut icon" href=/favicon.ico><title>CRMEB</title><link href=/view_cashier/css/chunk-vendors.dca943f0.css rel=stylesheet><link href=/view_cashier/css/app.6a98c643.css rel=stylesheet></head><body><noscript><strong>请开启 JavaScript 功能来使用 。</strong></noscript><div id=app></div><script src=/view_cashier/js/chunk-vendors.828765ff.js></script><script src=/view_cashier/js/app.03c8e306.js></script></body><script>// ========== 禁用安卓系统键盘弹出 ==========
+    (function() {
+        // 检测是否为安卓环境
+        var isAndroid = /android/i.test(navigator.userAgent);
+
+        if (isAndroid) {
+            console.log('[Android] 检测到安卓环境，启用键盘禁用方案');
+
+            // 方案1: 使用 MutationObserver 监听动态添加的输入框
+            var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) {
+                            // 检查新添加的节点及其子节点中的输入框
+                            var inputs = node.tagName === 'INPUT' || node.tagName === 'TEXTAREA'
+                                ? [node]
+                                : node.querySelectorAll ? node.querySelectorAll('input, textarea') : [];
+                            inputs.forEach(disableKeyboardForElement);
+                        }
+                    });
+                });
+            });
+
+            // 禁用单个元素的键盘
+            function disableKeyboardForElement(el) {
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                    // 跳过已经处理的元素
+                    if (el.getAttribute('data-keyboard-disabled')) return;
+
+                    // 标记已处理
+                    el.setAttribute('data-keyboard-disabled', 'true');
+
+                    // 方案A: 设置 inputmode="none" (HTML5 标准)
+                    el.setAttribute('inputmode', 'none');
+
+                    // 方案B: 监听 focus 事件，延迟设置 readonly
+                    el.addEventListener('focus', function(e) {
+                        // 保持元素可聚焦，但阻止键盘弹出
+                        var target = e.target;
+                        var originalValue = target.value;
+
+                        // 使用 setTimeout 确保 DOM 更新后再处理
+                        setTimeout(function() {
+                            // 方案: 创建隐藏的密码框来吸收键盘焦点
+                            // 或者使用 blur + refocus 技巧
+                            if (document.activeElement === target) {
+                                // 短暂失焦再聚焦，绕过键盘
+                                target.setAttribute('readonly', 'readonly');
+                                setTimeout(function() {
+                                    target.removeAttribute('readonly');
+                                }, 100);
+                            }
+                        }, 10);
+                    }, true);
+
+                    // 方案C: 阻止 touchend 默认行为（在某些安卓版本有效）
+                    el.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        e.target.focus();
+                    }, { passive: false });
+                }
+            }
+
+            // 处理页面加载时已存在的输入框
+            document.addEventListener('DOMContentLoaded', function() {
+                var inputs = document.querySelectorAll('input, textarea');
+                inputs.forEach(disableKeyboardForElement);
+
+                // 启动 MutationObserver
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+
+            // 如果 DOMContentLoaded 已经触发
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                var inputs = document.querySelectorAll('input, textarea');
+                inputs.forEach(disableKeyboardForElement);
+
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+
+            // 方案D: 全局阻止键盘弹出的备用方案
+            document.addEventListener('click', function(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    // 使用 CSS 禁用输入法
+                    if (!e.target.style.imeMode) {
+                        e.target.style.imeMode = 'disabled';
+                    }
+                }
+            }, true);
+        }
+    })();
+
+    // function jsToJava(){
+    //     window.Jsbridge.invoke('openCacheBox',JSON.stringify({'p1-key':'p1-value'}), myFunction );
+    // }
+    // dataset 方法兼容 IE 浏览器。ie10及以下不支持dataset
+    if (window.HTMLElement) {
+        if (Object.getOwnPropertyNames(HTMLElement.prototype).indexOf('dataset') === -1) {
+            Object.defineProperty(HTMLElement.prototype, 'dataset', {
+                get: function () {
+                    var attributes = this.attributes // 获取节点的所有属性
+                    var name = []
+                    var value = [] // 定义两个数组保存属性名和属性值
+                    var obj = {} // 定义一个空对象
+                    for (var i = 0; i < attributes.length; i++) { // 遍历节点的所有属性
+                        if (attributes[i].nodeName.slice(0, 5) === 'data-') { // 如果属性名的前面5个字符符合"data-"
+                            // 取出属性名的"data-"的后面的字符串放入name数组中
+                            name.push(attributes[i].nodeName.slice(5));
+                            // 取出对应的属性值放入value数组中
+                            value.push(attributes[i].nodeValue);
+                        }
+                    }
+                    for (var j = 0; j < name.length; j++) { // 遍历name和value数组
+                        obj[name[j]] = value[j]; // 将属性名和属性值保存到obj中
+                    }
+                    return obj // 返回对象
+                }
+            })
+        }
+    }</script></html>
